@@ -1,18 +1,14 @@
-import { Route, Routes, BrowserRouter } from "react-router"
+import {ReactNode, useState } from "react"
 import HomePage from "./Pages/Home"
-import LeaderPage from "./Pages/Leader"
-import RiderPage from "./Pages/Rider"
+
+export var PageSetter = (_: ReactNode) => {} 
 
 function App() {
-    return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/"       element={<HomePage/>}/>
-                <Route path="/Leader" element={<LeaderPage/>}/>
-                <Route path="/Rider"  element={<RiderPage/>}/>
-            </Routes>
-        </BrowserRouter>
-    )
+    const [currentPage, setCurrentPage] = useState<ReactNode>(<HomePage/>)
+
+    PageSetter = setCurrentPage
+
+    return currentPage
 }
 
 export default App
