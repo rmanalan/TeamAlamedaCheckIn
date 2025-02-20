@@ -4,9 +4,14 @@ import HomePage from '../Home';
 import { PageSetter } from '../../App';
 
 import { Scanner } from '@yudiel/react-qr-scanner';
+import { useState } from "react";
+import CheckSVG from "../../Components/CheckSVG";
 
+import "./index.css"
 
 function LeaderPage() {
+    const [scan, setScan] = useState<any|undefined>()
+
     return (
         <div style={{width:"100%", height:"100%"}}>
             <div 
@@ -23,10 +28,26 @@ function LeaderPage() {
                     <img style={{height:"100%", aspectRatio:1}} src="TeamAlamedaLogo.png" alt="" />
                 </div>
 
-                <div style={{display:"flex", justifyContent:"center", width:"100%", height:"50%", flexGrow:0}}>
-                    <div style={{display:"flex", justifyContent:"center", height:"100%", aspectRatio:1, borderRadius:"20px", backgroundColor:"rgb(42,79,113)"}}>
-                        <Scanner onScan={(qr) => {console.log(JSON.parse(qr[0].rawValue))}}/>
-                        {/* <h1 style={{color:"#fff", transform:"translateY(35%)"}}>Scanner</h1> */}
+                <div style={{display:"flex", justifyContent:"center", width:"100%", height:"50%", padding:"20px", flexGrow:0}}>
+                    <div style={{display:"flex", justifyContent:"center", height:"100%", aspectRatio:1, borderRadius:"20px", backgroundColor:""}}>
+                        {scan===undefined ? 
+                            <Scanner styles={{container:{borderRadius:"20px", backgroundColor:"#fff"}, video:{borderRadius:"20px"}}} onScan={(qr) => {
+                            try {
+                                const json = JSON.parse(qr[0].rawValue)
+                                setScan(json)
+
+                                // unset after sending data to the backend, wrap in .then
+                                window.setTimeout(() => {
+                                    setScan(undefined)
+                                }, 1500);
+                            } catch (error) {
+                                
+                            }}}/>
+                            : 
+                            <div style={{padding:"20px"}}>
+                                <CheckSVG/>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
