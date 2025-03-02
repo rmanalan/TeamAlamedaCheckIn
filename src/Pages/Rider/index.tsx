@@ -5,50 +5,105 @@ import { PageSetter } from "../../App";
 
 import { useEffect, useRef, useState } from "react";
 
+import { AsYouType, isValidPhoneNumber } from "libphonenumber-js";
+
 import QRCode from "react-qr-code";
 
 import "./index.css"
 
-
-function nameIsValid(name: string) {
-    return name!=""
+type RiderData = {
+    guest: boolean
+    name: string
+    number: string
+    emergencyNumber: string
 }
 
-function numberIsValid(number: string) {
-    return number!=""
+type TextInputProps = {
+    value: string
+    setValue: React.Dispatch<string>
+    placeholder: string
+    isValid: any
+    onInput: any
 }
 
-function RiderPage() {
+function TextInput({value, setValue, placeholder, isValid, onInput}: TextInputProps) {
+    const ref = useRef(null)
+
+    // set inital text
+    if (ref.current) {
+        if ((ref.current as HTMLSpanElement).innerText == "" && value.trim() != "") {
+            (ref.current as HTMLSpanElement).innerText = value
+        }
+    }
+
+    return (
+    <span 
+        ref={ref}
+        style={{width:"100%", height:"24px", margin:"auto", paddingLeft:"5px", marginBottom:"5px", border:`2px solid ${isValid(value)?"black":"red"}`, borderRadius:"7px"}} 
+        onInput={e => {
+            setValue((e.target as HTMLSpanElement).innerText);
+            onInput(e)
+        }} 
+        onKeyDown={e => {if (e.key==="Enter"){e.preventDefault()}}}
+        contentEditable 
+        data-placeholder={placeholder}
+    />   
+    ) 
+}
+
+type RiderProps = {
+    guest: boolean
+}
+
+function RiderPage({guest}:RiderProps) {
     const [qr, setQr] = useState<boolean>(false)
     
     const [name, setName] = useState<string>("")
     const [number, setNumber] = useState<string>("")
     const [emergencyNumber, setEmergencyNumber] = useState<string>("")
 
-    const nameRef = useRef(null)
-    const numberRef = useRef(null)
-    const emergencyNumberRef = useRef(null)
+    const nameIsValid = (name: string) => name.trim()!=""
+    
+    const numberIsValid = (number: string) => {
+        number = number.trim()
+        return number!="" && isValidPhoneNumber(number, "US")
+    }
 
-    const valuesValid = () => nameIsValid(name)&&numberIsValid(number)&&numberIsValid(emergencyNumber)
-    const previousInput = localStorage.getItem("riderData");
-    const hasPreviousInput = previousInput!==null&&previousInput!==undefined
+    const valuesValid =  (): boolean => nameIsValid(name)&&numberIsValid(number)&&numberIsValid(emergencyNumber)
+    const getRiderData = (): RiderData => {return {guest:guest, name:name, number:number, emergencyNumber:emergencyNumber}}
+
+    const localStorageKey = guest?"guestRiderData":"riderData"
 
     useEffect(() => {
-        if (hasPreviousInput && nameRef.current && numberRef.current && emergencyNumberRef.current) {
+        const previousInput = localStorage.getItem(localStorageKey);
+        const hasPreviousInput = previousInput!==null&&previousInput!==undefined
+        if (hasPreviousInput) {
             const riderData = JSON.parse(previousInput)
             setName(riderData.name);
             setNumber(riderData.number);
             setEmergencyNumber(riderData.emergencyNumber);
-
-            (nameRef.current as HTMLSpanElement).innerText = riderData.name;
-            (numberRef.current as HTMLSpanElement).innerText = riderData.number;
-            (emergencyNumberRef.current as HTMLSpanElement).innerText = riderData.emergencyNumber;  
             
             if (nameIsValid(riderData.name)&&numberIsValid(riderData.number)&&numberIsValid(riderData.emergencyNumber)) {
                 setQr(true)
             }
         }
     }, [])
+
+    const handlePhoneNumber = (e: React.FormEvent<HTMLSpanElement>) => {
+        setQr(false)
+
+        const span = (e.target as HTMLSpanElement)
+        span.innerText = new AsYouType("US").input(span.innerText)
+        
+        // Move cursor to the end
+        const range = document.createRange();
+        const selection = window.getSelection();
+        range.selectNodeContents(span);
+        range.collapse(false); // Collapse to the end
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        span.focus(); // Ensure the span is focused
+    }
 
     return (
         <div style={{width:"100%", height:"100%"}}>
@@ -68,30 +123,9 @@ function RiderPage() {
                 </div>
 
                 <div style={{display:"flex", flexDirection:"column", justifyContent:"center", width:"100%", flexGrow:0}}>
-                    <span 
-                        ref={nameRef}
-                        style={{width:"100%", height:"24px", margin:"auto", paddingLeft:"5px", marginBottom:"5px", border:`2px solid ${nameIsValid(name)?"black":"red"}`, borderRadius:"7px"}} 
-                        onInput={e => {setName((e.target as HTMLSpanElement).innerText); setQr(false)}} 
-                        onKeyDown={e => {if (e.key==="Enter"){e.preventDefault()}}}
-                        contentEditable 
-                        data-placeholder={"Name"}
-                    />     
-                    <span
-                        ref={numberRef}
-                        style={{width:"100%", height:"24px", margin:"auto", paddingLeft:"5px", marginBottom:"5px", border:`2px solid ${numberIsValid(number)?"black":"red"}`, borderRadius:"7px"}} 
-                        onInput={e => {setNumber((e.target as HTMLSpanElement).innerText); setQr(false)}} 
-                        onKeyDown={e => {if (e.key==="Enter"){e.preventDefault()}}}
-                        contentEditable 
-                        data-placeholder={"Phone Number"}
-                    /> 
-                    <span 
-                        ref={emergencyNumberRef}
-                        style={{width:"100%", height:"24px", margin:"auto", paddingLeft:"5px", marginBottom:"5px", border:`2px solid ${numberIsValid(emergencyNumber)?"black":"red"}`, borderRadius:"7px"}} 
-                        onInput={e => {setEmergencyNumber((e.target as HTMLSpanElement).innerText); setQr(false)}} 
-                        onKeyDown={e => {if (e.key==="Enter"){e.preventDefault()}}}
-                        contentEditable 
-                        data-placeholder={"Emergency Phone Number"}
-                    />                
+                    <TextInput setValue={setName}            value={name}            placeholder="Name"             isValid={nameIsValid}   onInput={() => setQr(false)}/>
+                    <TextInput setValue={setNumber}          value={number}          placeholder="Number"           isValid={numberIsValid} onInput={handlePhoneNumber}/>
+                    <TextInput setValue={setEmergencyNumber} value={emergencyNumber} placeholder="Emergency Number" isValid={numberIsValid} onInput={handlePhoneNumber}/>
                 </div>
 
                 <div style={{display:"flex", justifyContent:"center", marginBottom:"15px", width:"100%", flexGrow:0}}>
@@ -100,8 +134,7 @@ function RiderPage() {
                         disabled={!valuesValid()}
                         onClick={() => {
                             setQr(true)
-                            console.log(name, number, emergencyNumber)
-                            localStorage.setItem("riderData", JSON.stringify({name:name, number:number, emergencyNumber:emergencyNumber}))
+                            localStorage.setItem(localStorageKey, JSON.stringify(getRiderData()))
                         }}
                     >
                         Generate QR
@@ -116,7 +149,7 @@ function RiderPage() {
                         </div>
                     :
                         <div style={{height:"100%",padding:"5px", border:"2px solid black"}}>
-                            <QRCode style={{height:"100%", border:""}} value={JSON.stringify({name:name, number:number, emergencyNumber:emergencyNumber})}/> 
+                            <QRCode style={{height:"100%", border:""}} value={JSON.stringify(getRiderData())}/> 
                         </div>
                     }
                 </div>

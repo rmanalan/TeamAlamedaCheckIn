@@ -4,13 +4,20 @@ import HomePage from '../Home';
 import { PageSetter } from '../../App';
 
 import { Scanner } from '@yudiel/react-qr-scanner';
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CheckSVG from "../../Components/CheckSVG";
 
 import "./index.css"
 
+// HIDE ME EVENTUALLY
+const sheet = "https://script.google.com/macros/s/AKfycbyaloCXhlk1lK5oluMsO0rjcIBYRcP-cB-SuNWo46oOlX7H-4NrJIJwGCHm3Xf-bdl14A/exec"
+
 function LeaderPage() {
-    const [scan, setScan] = useState<any|undefined>()
+    const [scan, setScan] = useState<string>("UNSCANNED")
+
+    useEffect(() => {
+        console.log("aaaa")
+    }, [scan])
 
     return (
         <div style={{width:"100%", height:"100%"}}>
@@ -29,24 +36,39 @@ function LeaderPage() {
                 </div>
 
                 <div style={{display:"flex", justifyContent:"center", width:"100%", height:"50%", padding:"20px", flexGrow:0}}>
-                    <div style={{display:"flex", justifyContent:"center", height:"100%", aspectRatio:1, borderRadius:"20px", backgroundColor:""}}>
-                        {scan===undefined ? 
+                    <div className="scanner" style={{display:"flex", justifyContent:"center", height:"100%", aspectRatio:1, borderRadius:"20px", backgroundColor:""}}>
+                        {scan==="UNSCANNED" ? 
                             <Scanner styles={{container:{borderRadius:"20px", backgroundColor:"#fff"}, video:{borderRadius:"20px"}}} onScan={(qr) => {
                             try {
                                 const json = JSON.parse(qr[0].rawValue)
-                                setScan(json)
+
+                                // actually takes forever
+                                fetch(sheet, {
+                                    method:"POST", 
+                                    body:JSON.stringify({name:json.name, number:json.number, emergencyNumber:json.emergencyNumber})
+                                }).
+                                then(r => r.text().then(t => {
+                                    console.log(t)
+                                    setScan(t)
+                                    window.setTimeout(() => {setScan("UNSCANNED")}, 1500);
+                                }))
 
                                 // unset after sending data to the backend, wrap in .then
-                                window.setTimeout(() => {
-                                    setScan(undefined)
-                                }, 1500);
+
                             } catch (error) {
-                                
+                                console.log(error)
+                                setScan("ERROR")
+                                window.setTimeout(() => {setScan("UNSCANNED")}, 1500);
                             }}}/>
-                            : 
-                            <div style={{padding:"20px"}}>
-                                <CheckSVG/>
-                            </div>
+                        : 
+                            scan==="OK" ?
+                                <div style={{padding:"20px"}}>
+                                    <CheckSVG/>
+                                </div>
+                            :
+                                <div>
+                                    ERROR
+                                </div>                   
                         }
                     </div>
                 </div>

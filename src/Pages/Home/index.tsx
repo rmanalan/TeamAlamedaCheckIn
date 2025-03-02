@@ -27,9 +27,18 @@ function HomePage() {
                 <div style={{display:"flex", justifyContent:"center", width:"100%", flexGrow:0}}>
                    <button 
                         style={{width:"70%",padding:"12px", border:"none", borderRadius:"10px", backgroundColor:"rgb(42,79,113)", color:"#fff"}}
-                        onClick={() => PageSetter(<RiderPage/>)}
+                        onClick={() => PageSetter(<RiderPage guest={false}/>)}
                     >
                         Rider
+                    </button>
+                </div>
+
+                <div style={{display:"flex", justifyContent:"center", width:"100%", flexGrow:0}}>
+                   <button 
+                        style={{width:"70%",padding:"12px", border:"none", borderRadius:"10px", backgroundColor:"rgb(42,79,113)", color:"#fff"}}
+                        onClick={() => PageSetter(<RiderPage guest={true}/>)}
+                    >
+                        Guest Rider
                     </button>
                 </div>
             </div>
