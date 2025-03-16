@@ -8,16 +8,54 @@ import { useEffect, useState } from "react";
 import CheckSVG from "../../Components/CheckSVG";
 
 import "./index.css"
+import { ASClient } from "../../Tools/ASClient";
+import TextInput, { nameIsValid, numberIsValid, onPhoneNumberInput } from "../../Components/TextInput";
 
-// HIDE ME EVENTUALLY
-const sheet = "https://script.google.com/macros/s/AKfycbyaloCXhlk1lK5oluMsO0rjcIBYRcP-cB-SuNWo46oOlX7H-4NrJIJwGCHm3Xf-bdl14A/exec"
+const client: ASClient = new ASClient();
+let madeNewLog = false
 
 function LeaderPage() {
-    const [scan, setScan] = useState<string>("UNSCANNED")
+    const [name, setName] = useState<string>("")
+    const [number, setNumber] = useState<string>("")
+
+    const [makeNewLog, setMakeNewLog] = useState<boolean | undefined>(undefined)
+    const [scan, setScan] = useState<string>("LOADING")
+
+    const leaderDataOK = nameIsValid(name) && numberIsValid(number)
+
+    if (makeNewLog === undefined) {
+        client.fetch("/needNewLog", {}).then(t => {
+            if (t.startsWith("OK")) {
+                setMakeNewLog(t.split(" ")[1].trim()=="true");
+                if (makeNewLog) {
+                    madeNewLog = false
+                }
+                if (!(t.split(" ")[1].trim()=="true")) {
+                    setScan("UNSCANNED")
+                }
+            }
+        })
+    }
+
+    if (leaderDataOK) {
+        localStorage.setItem("leaderData", JSON.stringify({name: name, number:number}))
+        if (makeNewLog && !madeNewLog) {
+            madeNewLog = true
+            client.fetch("/newLog", {name:name, number:number}).then(() => {
+                setScan("UNSCANNED")
+            })
+        }
+    }
 
     useEffect(() => {
-        console.log("aaaa")
-    }, [scan])
+        const previousInput = localStorage.getItem("leaderData");
+        const hasPreviousInput = previousInput!==null&&previousInput!==undefined
+        if (hasPreviousInput) {
+            const riderData = JSON.parse(previousInput)
+            setName(riderData.name);
+            setNumber(riderData.number);
+        }
+    }, [])
 
     return (
         <div style={{width:"100%", height:"100%"}}>
@@ -35,40 +73,45 @@ function LeaderPage() {
                     <img style={{height:"100%", aspectRatio:1}} src="TeamAlamedaLogo.png" alt="" />
                 </div>
 
+                <div style={{display:"flex", flexDirection:"column", justifyContent:"center", width:"100%", flexGrow:0}}>
+                    <TextInput setValue={setName}            value={name}            placeholder="Leader Name"             isValid={nameIsValid}   onInput={() => {}}/>
+                    <TextInput setValue={setNumber}          value={number}          placeholder="Leader Number"           isValid={numberIsValid} onInput={onPhoneNumberInput}/>
+                </div>
+
                 <div style={{display:"flex", justifyContent:"center", width:"100%", height:"50%", padding:"20px", flexGrow:0}}>
                     <div className="scanner" style={{display:"flex", justifyContent:"center", height:"100%", aspectRatio:1, borderRadius:"20px", backgroundColor:""}}>
                         {scan==="UNSCANNED" ? 
                             <Scanner styles={{container:{borderRadius:"20px", backgroundColor:"#fff"}, video:{borderRadius:"20px"}}} onScan={(qr) => {
-                            try {
-                                const json = JSON.parse(qr[0].rawValue)
-
-                                // actually takes forever
-                                fetch(sheet, {
-                                    method:"POST", 
-                                    body:JSON.stringify({name:json.name, number:json.number, emergencyNumber:json.emergencyNumber})
-                                }).
-                                then(r => r.text().then(t => {
-                                    console.log(t)
-                                    setScan(t)
+                                try {
+                                    const json = JSON.parse(qr[0].rawValue)
+                                    console.log("guest",json.guest)
+                                    client.fetch(json.guest?"/newGuestRider":"/newRider", json).then(t => {
+                                        if (t.startsWith("ERROR")) {
+                                            setScan("ERROR")
+                                        }
+                                        setScan("UNSCANNED")
+                                    })
+                                    setScan("OK")
+                                } catch (error) {
+                                    console.log(error)
+                                    setScan("ERROR")
                                     window.setTimeout(() => {setScan("UNSCANNED")}, 1500);
-                                }))
-
-                                // unset after sending data to the backend, wrap in .then
-
-                            } catch (error) {
-                                console.log(error)
-                                setScan("ERROR")
-                                window.setTimeout(() => {setScan("UNSCANNED")}, 1500);
-                            }}}/>
-                        : 
+                                }
+                            }}/>
+                            : 
                             scan==="OK" ?
                                 <div style={{padding:"20px"}}>
                                     <CheckSVG/>
                                 </div>
-                            :
-                                <div>
-                                    ERROR
-                                </div>                   
+                            : 
+                                scan==="LOADING" ?
+                                    <div>
+                                        LOADING
+                                    </div>   
+                                :
+                                    <div>
+                                        ERROR
+                                    </div>                   
                         }
                     </div>
                 </div>

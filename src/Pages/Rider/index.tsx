@@ -1,13 +1,15 @@
 import Backdrop from "../../Components/Backdrop"
 import BackSVG from "../../Components/BackSVG"
 import HomePage from "../Home";
+import TextInput from "../../Components/TextInput"
+
+import { nameIsValid, numberIsValid, onPhoneNumberInput } from "../../Components/TextInput";
+import { useEffect, useState } from "react";
 import { PageSetter } from "../../App";
 
-import { useEffect, useRef, useState } from "react";
-
-import { AsYouType, isValidPhoneNumber } from "libphonenumber-js";
 
 import QRCode from "react-qr-code";
+
 
 import "./index.css"
 
@@ -18,42 +20,11 @@ type RiderData = {
     emergencyNumber: string
 }
 
-type TextInputProps = {
-    value: string
-    setValue: React.Dispatch<string>
-    placeholder: string
-    isValid: any
-    onInput: any
-}
-
-function TextInput({value, setValue, placeholder, isValid, onInput}: TextInputProps) {
-    const ref = useRef(null)
-
-    // set inital text
-    if (ref.current) {
-        if ((ref.current as HTMLSpanElement).innerText == "" && value.trim() != "") {
-            (ref.current as HTMLSpanElement).innerText = value
-        }
-    }
-
-    return (
-    <span 
-        ref={ref}
-        style={{width:"100%", height:"24px", margin:"auto", paddingLeft:"5px", marginBottom:"5px", border:`2px solid ${isValid(value)?"black":"red"}`, borderRadius:"7px"}} 
-        onInput={e => {
-            setValue((e.target as HTMLSpanElement).innerText);
-            onInput(e)
-        }} 
-        onKeyDown={e => {if (e.key==="Enter"){e.preventDefault()}}}
-        contentEditable 
-        data-placeholder={placeholder}
-    />   
-    ) 
-}
-
 type RiderProps = {
     guest: boolean
 }
+
+
 
 function RiderPage({guest}:RiderProps) {
     const [qr, setQr] = useState<boolean>(false)
@@ -61,13 +32,6 @@ function RiderPage({guest}:RiderProps) {
     const [name, setName] = useState<string>("")
     const [number, setNumber] = useState<string>("")
     const [emergencyNumber, setEmergencyNumber] = useState<string>("")
-
-    const nameIsValid = (name: string) => name.trim()!=""
-    
-    const numberIsValid = (number: string) => {
-        number = number.trim()
-        return number!="" && isValidPhoneNumber(number, "US")
-    }
 
     const valuesValid =  (): boolean => nameIsValid(name)&&numberIsValid(number)&&numberIsValid(emergencyNumber)
     const getRiderData = (): RiderData => {return {guest:guest, name:name, number:number, emergencyNumber:emergencyNumber}}
@@ -91,18 +55,7 @@ function RiderPage({guest}:RiderProps) {
 
     const handlePhoneNumber = (e: React.FormEvent<HTMLSpanElement>) => {
         setQr(false)
-
-        const span = (e.target as HTMLSpanElement)
-        span.innerText = new AsYouType("US").input(span.innerText)
-        
-        // Move cursor to the end
-        const range = document.createRange();
-        const selection = window.getSelection();
-        range.selectNodeContents(span);
-        range.collapse(false); // Collapse to the end
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-        span.focus(); // Ensure the span is focused
+        onPhoneNumberInput(e);
     }
 
     return (
