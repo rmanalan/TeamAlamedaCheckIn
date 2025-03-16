@@ -1,51 +1,120 @@
 import Backdrop from "../../Components/Backdrop"
 import BackSVG from "../../Components/BackSVG";
+import CheckSVG from "../../Components/CheckSVG";
+import TextInput from "../../Components/TextInput";
 import HomePage from '../Home';
+
+import { nameIsValid, numberIsValid, onPhoneNumberInput } from "../../Components/TextInput"
+import { ASClient } from "../../Tools/ASClient";
 import { PageSetter } from '../../App';
 
-import { Scanner } from '@yudiel/react-qr-scanner';
+import { IDetectedBarcode, Scanner } from '@yudiel/react-qr-scanner';
 import { useEffect, useState } from "react";
-import CheckSVG from "../../Components/CheckSVG";
 
 import "./index.css"
-import { ASClient } from "../../Tools/ASClient";
-import TextInput, { nameIsValid, numberIsValid, onPhoneNumberInput } from "../../Components/TextInput";
 
 const client: ASClient = new ASClient();
-let madeNewLog = false
+
+function ScannerState(name:string, number:string) {
+    const [state, setState] = useState<string>("CHECKLOG")
+
+    let handleOnScan = (_:IDetectedBarcode[]) => {}
+
+    switch (state) {
+        // initial state
+        case "CHECKLOG":
+            const makeNewLog = () => {
+                client.fetch("/newLog", {name:name, number:number}).
+                then(t => {
+                    if (t.startsWith("OK")) {setState("ENTERDATA")} 
+                    else {setState("ERROR")}
+                }).
+                catch(() => {
+                    setState("ERROR")
+                })
+            }
+
+            const checkNewLog = () => {
+                client.fetch("/needNewLog", {}).
+                then(t => {
+                    if (t.startsWith("OK")) {
+                        // need new log?
+                        if (t.split(" ")[1].trim()=="true") {makeNewLog()} 
+                        else {setState("ENTERDATA")}
+                    } else {
+                        setState("ERROR")
+                    }
+                }).
+                catch(() => {
+                    setState("ERROR")
+                })
+            }
+
+            // used to see if we can skip this, but its a bit janky, needs a global
+            checkNewLog()
+
+            break
+        case "ENTERDATA":
+            if (nameIsValid(name) && numberIsValid(number)) {
+                localStorage.setItem("leaderData", JSON.stringify({name:name, number:number}))
+                setState("SCANNING")
+            }
+            break
+        case "SCANNING":
+            handleOnScan = (qr:IDetectedBarcode[]) => {
+                try {
+                    const json = JSON.parse(qr[0].rawValue)
+
+                    client.fetch(json.guest?"/newGuestRider":"/newRider", json).
+                    then(t => {
+                        if (t.startsWith("OK")) {
+                            setState("SCANNED")
+                        } else {
+                            setState("ERROR")
+                        }
+                    }).
+                    catch(() => {
+                        setState("ERROR")
+                    })
+                    setState("PENDING") // be responsive while waiting for actual scan result
+                } catch (error) {
+                    setState("ERROR")
+                }
+            } 
+            break
+        case "PENDING":
+            break
+        case "SCANNED":
+            window.setTimeout(() => setState("SCANNING"), 500) // able to rescan, transistion back to scanning state
+            break
+        case "ERROR":
+        default:
+            window.setTimeout(() => setState("CHECKLOG"), 1500) // something broke, go back to initial, se what can be skipped
+            break
+    }
+
+    const stateLabel = (name: string) => {
+        return (
+            <div style={{display:"flex", justifyContent:"center", height:"100%", aspectRatio:1, borderRadius:"20px", backgroundColor:"#fff"}}>
+                <h1 style={{color:"rgb(42,79,113)", transform:"translateY(35%)"}}>{name}</h1>
+            </div>  
+        )
+    }
+
+    switch (state) {
+        case "SCANNING":  return (<Scanner styles={{container:{borderRadius:"20px", backgroundColor:"#fff"}, video:{borderRadius:"20px"}}} onScan={handleOnScan}/>)
+        case "CHECKLOG":  return stateLabel("Loading")
+        case "ENTERDATA": return stateLabel("Enter Data")
+        case "PENDING":   return stateLabel("Uploading...")
+        case "SCANNED":   return (<div style={{padding:"20px"}}><CheckSVG/></div>)
+        case "ERROR":
+        default:          return stateLabel("Error")
+    }
+}
 
 function LeaderPage() {
     const [name, setName] = useState<string>("")
     const [number, setNumber] = useState<string>("")
-
-    const [makeNewLog, setMakeNewLog] = useState<boolean | undefined>(undefined)
-    const [scan, setScan] = useState<string>("LOADING")
-
-    const leaderDataOK = nameIsValid(name) && numberIsValid(number)
-
-    if (makeNewLog === undefined) {
-        client.fetch("/needNewLog", {}).then(t => {
-            if (t.startsWith("OK")) {
-                setMakeNewLog(t.split(" ")[1].trim()=="true");
-                if (makeNewLog) {
-                    madeNewLog = false
-                }
-                if (!(t.split(" ")[1].trim()=="true")) {
-                    setScan("UNSCANNED")
-                }
-            }
-        })
-    }
-
-    if (leaderDataOK) {
-        localStorage.setItem("leaderData", JSON.stringify({name: name, number:number}))
-        if (makeNewLog && !madeNewLog) {
-            madeNewLog = true
-            client.fetch("/newLog", {name:name, number:number}).then(() => {
-                setScan("UNSCANNED")
-            })
-        }
-    }
 
     useEffect(() => {
         const previousInput = localStorage.getItem("leaderData");
@@ -80,39 +149,7 @@ function LeaderPage() {
 
                 <div style={{display:"flex", justifyContent:"center", width:"100%", height:"50%", padding:"20px", flexGrow:0}}>
                     <div className="scanner" style={{display:"flex", justifyContent:"center", height:"100%", aspectRatio:1, borderRadius:"20px", backgroundColor:""}}>
-                        {scan==="UNSCANNED" ? 
-                            <Scanner styles={{container:{borderRadius:"20px", backgroundColor:"#fff"}, video:{borderRadius:"20px"}}} onScan={(qr) => {
-                                try {
-                                    const json = JSON.parse(qr[0].rawValue)
-                                    console.log("guest",json.guest)
-                                    client.fetch(json.guest?"/newGuestRider":"/newRider", json).then(t => {
-                                        if (t.startsWith("ERROR")) {
-                                            setScan("ERROR")
-                                        }
-                                        setScan("UNSCANNED")
-                                    })
-                                    setScan("OK")
-                                } catch (error) {
-                                    console.log(error)
-                                    setScan("ERROR")
-                                    window.setTimeout(() => {setScan("UNSCANNED")}, 1500);
-                                }
-                            }}/>
-                            : 
-                            scan==="OK" ?
-                                <div style={{padding:"20px"}}>
-                                    <CheckSVG/>
-                                </div>
-                            : 
-                                scan==="LOADING" ?
-                                    <div>
-                                        LOADING
-                                    </div>   
-                                :
-                                    <div>
-                                        ERROR
-                                    </div>                   
-                        }
+                        {ScannerState(name, number)}
                     </div>
                 </div>
             </div>
