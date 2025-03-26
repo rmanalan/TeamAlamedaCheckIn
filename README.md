@@ -5,4 +5,7 @@ Made using React + Vite + TS <br>
 
 # Build Instructions
 npm install <br>
-npm run build
+npm run build <br>
+
+# Deploy Instructions
+npm run deploy <br>
