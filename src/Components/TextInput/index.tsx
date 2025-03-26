@@ -1,6 +1,10 @@
 import { AsYouType, isValidPhoneNumber } from "libphonenumber-js"
 import { useRef } from "react"
 
+import "./index.css"
+
+
+
 type TextInputProps = {
     value: string
     setValue: React.Dispatch<string>
@@ -30,6 +34,8 @@ export const numberIsValid = (number: string) => {
     number = number.trim()
     return number!="" && isValidPhoneNumber(number, "US")
 }
+
+
 
 function TextInput({value, setValue, placeholder, isValid, onInput}: TextInputProps) {
     const ref = useRef(null)

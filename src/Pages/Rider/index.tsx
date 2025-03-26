@@ -7,11 +7,9 @@ import { nameIsValid, numberIsValid, onPhoneNumberInput } from "../../Components
 import { useEffect, useState } from "react";
 import { PageSetter } from "../../App";
 
-
 import QRCode from "react-qr-code";
 
 
-import "./index.css"
 
 type RiderData = {
     guest: boolean
