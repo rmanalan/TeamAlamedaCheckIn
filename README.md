@@ -3,9 +3,13 @@ Used to record rider info in case of emergencies <br>
 Made using React + Vite + TS <br>
 <br>
 
-# Build Instructions
-npm install <br>
+# Build
 npm run build <br>
+<br>
 
-# Deploy Instructions
+# Devserver
+npm run dev <br>
+<br>
+
+# Deploy
 npm run deploy <br>
