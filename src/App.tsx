@@ -1,7 +1,7 @@
 import {ReactNode, useState } from "react"
 import HomePage from "./Pages/Home"
 
-export var PageSetter = (_: ReactNode) => {} 
+export let PageSetter: (page: ReactNode) => void
 
 function App() {
     const [currentPage, setCurrentPage] = useState<ReactNode>(<HomePage/>)
