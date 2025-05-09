@@ -1,7 +1,7 @@
 // apps script client
 export class ASClient {
     // HIDE ME EVENTUALLY
-    asScriptUrl = "https://script.google.com/macros/s/AKfycbzushZ9-lh3mxA5kZ34SWMa1ffGwmF9FjnmxMXsSpi6EyF2cXU_2cUiRLjx36W1VvIEFw/exec"
+    asScriptUrl = "https://script.google.com/macros/s/AKfycbyEBnlc0riwBxhZaBhnDGSfYvWNTFVio2fB__STN8o50yqLKKo428hEhEcDaaNqfK3yOQ/exec"
 
     fetch(route:string, data:unknown) {
         return new Promise<string>((res, rej) => {
