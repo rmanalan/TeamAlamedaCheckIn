@@ -1,7 +1,7 @@
 // apps script client
 export class ASClient {
     // HIDE ME EVENTUALLY
-    #sheet = "https://script.google.com/macros/s/AKfycbyaloCXhlk1lK5oluMsO0rjcIBYRcP-cB-SuNWo46oOlX7H-4NrJIJwGCHm3Xf-bdl14A/exec"
+    #sheet = "https://script.google.com/macros/s/AKfycbzushZ9-lh3mxA5kZ34SWMa1ffGwmF9FjnmxMXsSpi6EyF2cXU_2cUiRLjx36W1VvIEFw/exec"
 
     fetch(route:string, data:any) {
         return new Promise<string>((res, rej) => {

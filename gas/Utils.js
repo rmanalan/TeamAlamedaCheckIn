@@ -5,5 +5,7 @@ function log(verbose, ...vals) {
 // todays date
 function getFullDate() {
   const date = new Date()
-  return date.getMonth()+"/"+date.getDate()+"/"+date.getFullYear()
+  return date.getMonth().toLocaleString("en-US", {minimumIntegerDigits: 1, useGrouping: false})+
+         date.getDate().toLocaleString("en-US", {minimumIntegerDigits: 1, useGrouping: false})+
+         date.getFullYear().toLocaleString("en-US", {minimumIntegerDigits: 4, useGrouping: false})
 }
